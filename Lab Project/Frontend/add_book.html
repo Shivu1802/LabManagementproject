@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Book</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Add Book</h2>
+        <form id="addBookForm" class="dashboard-options">
+            <input type="text" id="bookName" placeholder="Book Name" required />
+            <input type="text" id="authorName" placeholder="Author Name" required />
+            <button type="submit">Add Book</button>
+        </form>
+        <button onclick="location.href='admin_dashboard.html'">Back to Dashboard</button>
+    </div>
+    <script>
+    document.getElementById('addBookForm').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const bookName = document.getElementById('bookName').value;
+        const authorName = document.getElementById('authorName').value;
+        try {
+            const response = await fetch('http://127.0.0.1:5000/add_book', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ book_name: bookName, author_name: authorName, role: localStorage.getItem('role') })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert('Book added successfully!');
+                document.getElementById('addBookForm').reset();
+            } else {
+                alert(result.message);
+            }
+        } catch (error) {
+            alert('Error connecting to server.');
+        }
+    });
+    </script>
+</body>
+</html>

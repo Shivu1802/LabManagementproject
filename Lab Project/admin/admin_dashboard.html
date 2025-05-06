@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2 id="welcomeMsg">Welcome</h2>
+        <div class="dashboard-options">
+            <button onclick="location.href='add_book.html'">Add Book</button>
+            <button onclick="location.href='view_books.html'">View Books</button>
+            <button onclick="location.href='admin_student_issued_books.html'">Show Issued Book Details</button>
+            <button onclick="location.href='index.html'">Exit</button>
+        </div>
+    </div>
+    <script>
+    const username = localStorage.getItem('username') || '';
+    const role = localStorage.getItem('role') || '';
+    document.getElementById('welcomeMsg').textContent = `Welcome ${username} (${role})`;
+    </script>
+</body>
+</html>

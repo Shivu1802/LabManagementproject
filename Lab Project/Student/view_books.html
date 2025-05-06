@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Books</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Books List</h2>
+        
+        <form id="searchForm" style="margin-bottom: 16px; display: flex; gap: 8px; align-items: center;">
+            <input type="text" id="bookName" placeholder="Book Name" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" />
+            <input type="text" id="authorName" placeholder="Author Name" style="padding: 6px; border-radius: 4px; border: 1px solid #ccc;" />
+            <button type="submit" style="padding: 6px 12px; border-radius: 4px; background: #007bff; color: #fff; border: none;">Search</button>
+            <button type="button" id="resetBtn" style="padding: 6px 12px; border-radius: 4px; background: #6c757d; color: #fff; border: none;">Show All</button>
+        </form>
+        <div id="booksList" class="dashboard-options" style="gap: 10px;"></div>
+        <button onclick="window.history.back()">Back</button>
+    </div>
+    <script>
+    // Store issued books for the current student in a variable
+    let issuedBooksForStudent = [];
+
+    async function fetchIssuedBooksForStudent() {
+        const username = localStorage.getItem('username');
+        if (!username) {
+            window.location.href = 'index.html';
+            return;
+        }
+        try {
+            const res = await fetch(`http://127.0.0.1:5000/issued_books?student_username=${encodeURIComponent(username)}`);
+            const result = await res.json();
+            if (result.success) {
+                issuedBooksForStudent = result.books;
+            } else {
+                issuedBooksForStudent = [];
+            }
+        } catch {
+            issuedBooksForStudent = [];
+        }
+    }
+
+    async function fetchBooks(query = {}) {
+        try {
+            let url = 'http://127.0.0.1:5000/books';
+            // If filters are provided, use /search_books
+            if (query.book_name || query.author_name) {
+                const params = new URLSearchParams(query).toString();
+                url = `http://127.0.0.1:5000/search_books?${params}`;
+            }
+            const response = await fetch(url);
+            const result = await response.json();
+            const booksList = document.getElementById('booksList');
+            booksList.innerHTML = '';
+            if (result.success && result.books.length > 0) {
+                result.books.forEach(book => {
+                    const div = document.createElement('div');
+                    div.className = 'book-card';
+                    div.innerHTML = `<strong>${book.book_name}</strong><span style='opacity:0.82;font-size:0.98em;'>by ${book.author_name}</span>`;
+                    // Add Issue button if student
+                    const userRole = localStorage.getItem('role') || 'student';
+                    if (userRole === 'student') {
+                        const issueBtn = document.createElement('button');
+                        issueBtn.textContent = 'Issue';
+                        issueBtn.style.marginTop = '8px';
+                        issueBtn.style.alignSelf = 'flex-end';
+                        issueBtn.style.background = '#2ecc40';
+                        issueBtn.style.color = '#fff';
+                        issueBtn.style.border = 'none';
+                        issueBtn.style.borderRadius = '6px';
+                        issueBtn.style.padding = '6px 16px';
+                        issueBtn.style.fontWeight = 'bold';
+                        issueBtn.style.cursor = 'pointer';
+                        issueBtn.onclick = async function() {
+                            const studentUsername = localStorage.getItem('username');
+                            if (!studentUsername) {
+                                alert('Please enter your username to issue a book.');
+                                return;
+                            }
+                            issueBtn.disabled = true;
+                            issueBtn.textContent = 'Issuing...';
+                            const res = await fetch('http://127.0.0.1:5000/issue_book', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    role: 'student',
+                                    student_username: studentUsername,
+                                    book_id: book.id
+                                })
+                            });
+                            const result = await res.json();
+                            issueBtn.disabled = false;
+                            issueBtn.textContent = 'Issue';
+                            alert(result.message);
+                            fetchIssuedBooksForStudent(); // Refresh issued books after issuing
+                        };
+                        div.appendChild(issueBtn);
+                    }
+                    booksList.appendChild(div);
+                });
+            } else {
+                booksList.innerHTML = '<div style="color:#fff">No books found.</div>';
+            }
+        } catch (error) {
+            document.getElementById('booksList').innerHTML = '<div style="color:#fff">Error fetching books.</div>';
+        }
+    }
+
+    document.getElementById('searchForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const bookName = document.getElementById('bookName').value.trim();
+        const authorName = document.getElementById('authorName').value.trim();
+        const userRole = localStorage.getItem('role') || 'student';
+        const studentUsername = localStorage.getItem('username');
+        if (!studentUsername) {
+            window.location.href = 'index.html';
+            return;
+        }
+        fetchBooks({ book_name: bookName, author_name: authorName });
+    });
+    document.getElementById('resetBtn').addEventListener('click', function() {
+        document.getElementById('bookName').value = '';
+        document.getElementById('authorName').value = '';
+        fetchBooks();
+    });
+    // Initial load
+    fetchBooks();
+
+    // Refresh book list (and issued details) when role or username changes
+    function updateBooksOnInput() {
+        fetchBooks({
+            book_name: document.getElementById('bookName').value.trim(),
+            author_name: document.getElementById('authorName').value.trim()
+        });
+    }
+    // No need for username/role listeners anymore.
+
+
+</script>
+</body>
+</html>

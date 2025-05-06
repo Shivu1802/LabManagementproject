@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Return Book</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Return Book</h2>
+        
+        <div id="issuedBooksList" style="margin-bottom: 24px;"></div>
+        <button onclick="window.history.back()">Back</button>
+    </div>
+    <script>
+    async function fetchIssuedBooks() {
+        const username = localStorage.getItem('username');
+        const container = document.getElementById('issuedBooksList');
+        if (!username) {
+            window.location.href = 'index.html';
+            return;
+        }
+        container.innerHTML = 'Loading your issued books...';
+        const res = await fetch(`http://127.0.0.1:5000/issued_books?student_username=${encodeURIComponent(username)}`);
+        const result = await res.json();
+        if (result.success && result.books.length > 0) {
+            container.innerHTML = '<h3 style="color:#2ecc40;">Your Issued Books:</h3>' + result.books.map(book => {
+                let issuedDate = new Date(book.issue_date);
+                let now = new Date();
+                let daysHeld = Math.floor((now - issuedDate) / (1000 * 60 * 60 * 24));
+                let fine = daysHeld > 7 ? (daysHeld - 7) * 2 : 0;
+                return `<div class=\"book-card\"><strong>${book.book_name}</strong> by ${book.author_name}<br><span style=\"font-size:0.93em;opacity:0.7;\">Issued: ${book.issue_date}</span><br>` +
+                    `<span style=\"font-size:0.97em;\">Days Held: ${daysHeld} | Fine: <span style='color:#e74c3c;'>₹${fine}</span></span><br>` +
+                    `<button onclick=\"returnBook('${username}', ${book.id}, this)\" style=\"margin-top:6px;\">Return</button></div>`;
+            }).join('');
+        } else {
+            container.innerHTML = '<div style="color:#fff;opacity:0.8;">No books currently issued.</div>';
+        }
+    }
+
+    async function returnBook(username, bookId, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Returning...';
+        const res = await fetch('http://127.0.0.1:5000/return_book', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ student_username: username, book_id: bookId })
+        });
+        const result = await res.json();
+        if (result.success) {
+            alert(`Book returned! Days held: ${result.days_held}\nFine: ₹${result.fine}`);
+            fetchIssuedBooks();
+        } else {
+            alert(result.message);
+            btn.disabled = false;
+            btn.textContent = 'Return';
+        }
+    }
+
+    // Auto-load issued books on page load
+    fetchIssuedBooks();
+    </script>
+</body>
+</html>

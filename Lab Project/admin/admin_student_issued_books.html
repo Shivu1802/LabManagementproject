@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Issued Books Details</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <h2>Student Issued Books</h2>
+        <div style="margin-bottom: 14px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+            <input type="text" id="searchStudent" placeholder="Search Student Username" style="padding:6px;border-radius:4px;border:1px solid #ccc;min-width:140px;">
+            <input type="text" id="searchBook" placeholder="Search Book Name" style="padding:6px;border-radius:4px;border:1px solid #ccc;min-width:140px;">
+            <button id="searchBtn" style="padding:6px 12px;border-radius:4px;background:#007bff;color:#fff;border:none;">Search</button>
+            <button id="resetBtn" style="padding:6px 12px;border-radius:4px;background:#6c757d;color:#fff;border:none;">Show All</button>
+        </div>
+        <div id="issuedBooksTableContainer" style="margin-top: 20px;"></div>
+        <button onclick="window.history.back()">Back</button>
+    </div>
+    <script>
+    let allIssuedBooksData = [];
+    function renderIssuedBooksTable(data) {
+        const container = document.getElementById('issuedBooksTableContainer');
+        if (data.length > 0) {
+            let table = `<table style="width:100%;border-collapse:collapse;background:#222;color:#fff;">
+                <tr style='background:#333;'>
+                    <th style='padding:8px;border:1px solid #555;'>Student Username</th>
+                    <th style='padding:8px;border:1px solid #555;'>Book Name</th>
+                    <th style='padding:8px;border:1px solid #555;'>Author</th>
+                    <th style='padding:8px;border:1px solid #555;'>Issue Date</th>
+                </tr>`;
+            table += data.map(item =>
+                `<tr><td style='padding:6px;border:1px solid #555;'>${item.student_username}</td><td style='padding:6px;border:1px solid #555;'>${item.book_name}</td><td style='padding:6px;border:1px solid #555;'>${item.author_name}</td><td style='padding:6px;border:1px solid #555;'>${item.issue_date}</td></tr>`
+            ).join('');
+            table += '</table>';
+            container.innerHTML = table;
+        } else {
+            container.innerHTML = '<div style="color:#fff;">No issued books found.</div>';
+        }
+    }
+    async function fetchAllIssuedBooks() {
+        const container = document.getElementById('issuedBooksTableContainer');
+        container.innerHTML = 'Loading...';
+        const res = await fetch('http://127.0.0.1:5000/all_issued_books');
+        const result = await res.json();
+        if (result.success) {
+            allIssuedBooksData = result.issued;
+            renderIssuedBooksTable(allIssuedBooksData);
+        } else {
+            container.innerHTML = '<div style="color:#fff;">No issued books found.</div>';
+        }
+    }
+    document.getElementById('searchBtn').onclick = function() {
+        const student = document.getElementById('searchStudent').value.trim().toLowerCase();
+        const book = document.getElementById('searchBook').value.trim().toLowerCase();
+        const filtered = allIssuedBooksData.filter(item =>
+            item.student_username.toLowerCase().includes(student) &&
+            item.book_name.toLowerCase().includes(book)
+        );
+        renderIssuedBooksTable(filtered);
+    };
+    document.getElementById('resetBtn').onclick = function() {
+        document.getElementById('searchStudent').value = '';
+        document.getElementById('searchBook').value = '';
+        renderIssuedBooksTable(allIssuedBooksData);
+    };
+    fetchAllIssuedBooks();
+    </script>
+</body>
+</html>
